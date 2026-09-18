@@ -3,75 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>班衫角色手繪風轉換器 | Class Tee Avatar Sketch Tool</title>
+  <title>班衫角色設計與資料收集系統</title>
   <style>
-    :root { --primary: #2563eb; --bg: #f8fafc; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
-    .container { max-width: 800px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-    h1 { text-align: center; color: var(--primary); margin-bottom: 8px; font-size: 1.5rem; }
+    :root { --primary: #2563eb; --primary-hover: #1d4ed8; --bg: #f8fafc; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px 10px; color: #1e293b; }
+    .container { max-width: 720px; margin: 0 auto; background: white; padding: 28px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    h1 { text-align: center; color: var(--primary); margin: 0 0 6px 0; font-size: 1.6rem; }
     p.subtitle { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 24px; }
-    .upload-box { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 20px; background: #f1f5f9; }
-    .upload-box:hover { border-color: var(--primary); }
-    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-    .control-group { display: flex; flex-direction: column; font-size: 0.85rem; font-weight: bold; }
-    .control-group input, .control-group select { margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; }
-    .preview-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
-    .preview-card { text-align: center; flex: 1; min-width: 260px; }
-    .preview-card h3 { font-size: 0.95rem; margin-bottom: 8px; color: #475569; }
-    canvas { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
-    .btn-download { display: block; width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.2s; }
-    .btn-download:hover { background: #1d4ed8; }
-    .btn-download:disabled { background: #94a3b8; cursor: not-allowed; }
+    
+    .section-title { font-size: 1.1rem; font-weight: bold; border-left: 4px solid var(--primary); padding-left: 10px; margin: 24px 0 14px 0; color: #0f172a; }
+    .upload-box { border: 2px dashed #94a3b8; padding: 24px; text-align: center; border-radius: 10px; cursor: pointer; background: #f8fafc; transition: 0.2s; }
+    .upload-box:hover { border-color: var(--primary); background: #eff6ff; }
+    
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+    .control-group { display: flex; flex-direction: column; font-size: 0.85rem; font-weight: 600; }
+    .control-group input, .control-group select, .control-group textarea { margin-top: 6px; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.95rem; }
+    
+    .preview-container { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 16px 0; }
+    .preview-card { flex: 1; min-width: 240px; text-align: center; }
+    .preview-card h4 { margin: 0 0 8px 0; color: #475569; font-size: 0.9rem; }
+    canvas { max-width: 100%; height: auto; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+    
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .full-width { grid-column: span 2; }
+    
+    .btn-submit { width: 100%; background: var(--primary); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 24px; transition: 0.2s; }
+    .btn-submit:hover { background: var(--primary-hover); }
+    .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+    
+    .status-msg { text-align: center; font-weight: bold; margin-top: 16px; padding: 12px; border-radius: 8px; display: none; }
+    .status-success { background: #dcfce7; color: #15803d; }
+    .status-error { background: #fee2e2; color: #b91c1c; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>🎨 班衫個人頭像手繪化工具</h1>
-  <p class="subtitle">上載參考照片或草圖 ➔ 一鍵生成類手繪線稿 ➔ 下載後提交至班級問卷</p>
+  <h1>🎨 班衫角色手繪化與資料提交</h1>
+  <p class="subtitle">步驟：上載個人照片 ➔ 即時生成手繪風 ➔ 填妥特徵後直接提交</p>
 
+  <!-- 第一部分：手繪濾鏡轉換 -->
+  <div class="section-title">第一步：生成專屬手繪化身</div>
   <div class="upload-box" onclick="document.getElementById('fileInput').click()">
     <input type="file" id="fileInput" accept="image/*" style="display:none">
-    <p>📁 點擊上載參考照片（支援 JPG / PNG）</p>
+    <p style="margin:0; font-weight:500;">📷 點擊此處上載個人參考相片 / 自畫草稿</p>
   </div>
 
   <div class="controls">
     <div class="control-group">
-      <label>風格模式 (Style)</label>
+      <label>線條風格模式</label>
       <select id="styleMode">
-        <option value="pencil">鉛筆素描線條 (Pencil Sketch)</option>
-        <option value="comic">日系動漫描邊 (Anime Line Art)</option>
-        <option value="ink">黑白鋼筆線稿 (Ink Contour)</option>
+        <option value="pencil">鉛筆素描風 (Pencil Sketch)</option>
+        <option value="comic">動漫賽璐璐風 (Anime Line)</option>
+        <option value="ink">鋼筆黑白風 (Ink Art)</option>
       </select>
     </div>
     <div class="control-group">
-      <label>線條強度 / 閾值 (Threshold / Contrast)</label>
+      <label>線條清晰度 / 閾值</label>
       <input type="range" id="threshold" min="1" max="100" value="50">
     </div>
   </div>
 
   <div class="preview-container">
     <div class="preview-card">
-      <h3>原圖預覽</h3>
+      <h4>原圖</h4>
       <canvas id="origCanvas"></canvas>
     </div>
     <div class="preview-card">
-      <h3>手繪風效果（可直接下載）</h3>
+      <h4>手繪效果（將隨表單提交）</h4>
       <canvas id="outputCanvas"></canvas>
     </div>
   </div>
 
-  <button class="btn-download" id="downloadBtn" disabled>💾 下載手繪風圖片 (PNG)</button>
+  <!-- 第二部分：班衫特徵問卷 -->
+  <div class="section-title">第二步：填寫班衫個人特徵</div>
+  <form id="teeForm">
+    <div class="form-grid">
+      <div class="control-group">
+        <label>班號 (Class No.) *</label>
+        <input type="number" id="classNo" placeholder="例如：01" required>
+      </div>
+      <div class="control-group">
+        <label>衣服上顯示名稱 (Name) *</label>
+        <input type="text" id="name" placeholder="例如：Vincent / Alex" required>
+      </div>
+      <div class="control-group">
+        <label>髮型與面部特徵 *</label>
+        <input type="text" id="hairStyle" placeholder="例如：短髮微曲、黑框眼鏡" required>
+      </div>
+      <div class="control-group">
+        <label>代表道具 / 動作 / 興趣 *</label>
+        <input type="text" id="props" placeholder="例如：拿著排球、戴耳機" required>
+      </div>
+      <div class="control-group full-width">
+        <label>期望服裝風格</label>
+        <select id="clothing">
+          <option value="夏季校服 (Shirt/Dress)">夏季校服 (Shirt/Dress)</option>
+          <option value="學校體育服 (PE Uniform)">學校體育服 (PE Uniform)</option>
+          <option value="簡約休閒 T 恤 (Casual)">簡約休閒 T 恤 (Casual)</option>
+          <option value="社色 T 恤 (House Tee)">社色 T 恤 (House Tee)</option>
+        </select>
+      </div>
+      <div class="control-group full-width">
+        <label>備註 / 想要對設計師說的話（選填）</label>
+        <textarea id="notes" rows="2" placeholder="例如：希望畫得 Q 版一點"></textarea>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-submit" id="submitBtn">🚀 一鍵提交資料與手繪頭像</button>
+  </form>
+
+  <div id="statusMsg" class="status-msg"></div>
 </div>
 
 <script>
+  // 🔴 請將此處替換為你步驟一產生的 Google Apps Script Web App URL
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhcEsxlhTrDKXrlgAzq1PIm_T_fUX53-w12PsQmdmQ5qRF88on13quT7-BoVnDPuMk/exec";
+
   const fileInput = document.getElementById('fileInput');
   const styleMode = document.getElementById('styleMode');
   const threshold = document.getElementById('threshold');
   const origCanvas = document.getElementById('origCanvas');
   const outputCanvas = document.getElementById('outputCanvas');
-  const downloadBtn = document.getElementById('downloadBtn');
-  
+  const teeForm = document.getElementById('teeForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const statusMsg = document.getElementById('statusMsg');
+
   const ctxOrig = origCanvas.getContext('2d');
   const ctxOut = outputCanvas.getContext('2d');
   let currentImage = null;
@@ -84,8 +141,7 @@
       const img = new Image();
       img.onload = () => {
         currentImage = img;
-        // 限制畫布最大尺寸以保證效能
-        const maxDim = 800;
+        const maxDim = 600;
         let w = img.width, h = img.height;
         if (w > maxDim || h > maxDim) {
           if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
@@ -95,7 +151,6 @@
         origCanvas.height = outputCanvas.height = h;
         ctxOrig.drawImage(img, 0, 0, w, h);
         processImage();
-        downloadBtn.disabled = false;
       };
       img.src = event.target.result;
     };
@@ -107,55 +162,41 @@
 
   function processImage() {
     if (!currentImage) return;
-    const w = origCanvas.width;
-    const h = origCanvas.height;
+    const w = origCanvas.width, h = origCanvas.height;
     const imgData = ctxOrig.getImageData(0, 0, w, h);
     const data = imgData.data;
     const outImgData = ctxOut.createImageData(w, h);
     const outData = outImgData.data;
-
     const mode = styleMode.value;
     const threshVal = parseInt(threshold.value, 10);
 
-    // 灰階矩陣
     const gray = new Float32Array(w * h);
     for (let i = 0; i < data.length; i += 4) {
       gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     }
 
     if (mode === 'pencil') {
-      // 鉛筆素描：反色 + 高斯模糊近似 + 顏色減淡 (Color Dodge)
       for (let y = 1; y < h - 1; y++) {
         for (let x = 1; x < w - 1; x++) {
           const idx = y * w + x;
-          // 簡易邊緣梯級計算
           const gx = (-gray[(y-1)*w + (x-1)] + gray[(y-1)*w + (x+1)] - 2*gray[y*w + (x-1)] + 2*gray[y*w + (x+1)] - gray[(y+1)*w + (x-1)] + gray[(y+1)*w + (x+1)]);
           const gy = (-gray[(y-1)*w + (x-1)] - 2*gray[(y-1)*w + x] - gray[(y-1)*w + (x+1)] + gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)]);
-          let edge = Math.sqrt(gx * gx + gy * gy) * (threshVal / 30);
-          let val = 255 - edge;
-          val = Math.max(0, Math.min(255, val));
-
+          let val = Math.max(0, Math.min(255, 255 - Math.sqrt(gx * gx + gy * gy) * (threshVal / 30)));
           const pIdx = idx * 4;
-          outData[pIdx] = val;
-          outData[pIdx + 1] = val;
-          outData[pIdx + 2] = val;
-          outData[pIdx + 3] = 255;
+          outData[pIdx] = val; outData[pIdx + 1] = val; outData[pIdx + 2] = val; outData[pIdx + 3] = 255;
         }
       }
     } else if (mode === 'comic') {
-      // 動漫線稿：保留部分原色 + 邊緣加黑線
       for (let y = 1; y < h - 1; y++) {
         for (let x = 1; x < w - 1; x++) {
           const idx = y * w + x;
           const gx = (-gray[(y-1)*w + (x-1)] + gray[(y-1)*w + (x+1)] - 2*gray[y*w + (x-1)] + 2*gray[y*w + (x+1)] - gray[(y+1)*w + (x-1)] + gray[(y+1)*w + (x+1)]);
           const gy = (-gray[(y-1)*w + (x-1)] - 2*gray[(y-1)*w + x] - gray[(y-1)*w + (x+1)] + gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)]);
           const isEdge = Math.sqrt(gx * gx + gy * gy) > (110 - threshVal);
-
           const pIdx = idx * 4;
           if (isEdge) {
             outData[pIdx] = 30; outData[pIdx + 1] = 30; outData[pIdx + 2] = 30; outData[pIdx + 3] = 255;
           } else {
-            // 色彩量化 / 賽璐璐平塗感
             outData[pIdx] = Math.floor(data[pIdx] / 64) * 64 + 32;
             outData[pIdx + 1] = Math.floor(data[pIdx + 1] / 64) * 64 + 32;
             outData[pIdx + 2] = Math.floor(data[pIdx + 2] / 64) * 64 + 32;
@@ -164,7 +205,6 @@
         }
       }
     } else {
-      // 鋼筆純黑白高對比線稿
       for (let i = 0; i < gray.length; i++) {
         const val = gray[i] < (threshVal * 2.55) ? 0 : 255;
         const pIdx = i * 4;
@@ -174,11 +214,54 @@
     ctxOut.putImageData(outImgData, 0, 0);
   }
 
-  downloadBtn.addEventListener('click', () => {
-    const link = document.createElement('a');
-    link.download = `class_tee_sketch_${Date.now()}.png`;
-    link.href = outputCanvas.toDataURL('image/png');
-    link.click();
+  teeForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentImage) {
+      alert("請先上載相片生成手繪化身！");
+      return;
+    }
+    if (SCRIPT_URL === "YOUR_GAS_WEB_APP_URL_HERE") {
+      alert("請先在代碼中填寫 Google Apps Script 的 Web App 網址！");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.innerText = "⏳ 正在提交至 Google 試算表...";
+    statusMsg.style.display = "none";
+
+    const payload = {
+      classNo: document.getElementById('classNo').value,
+      name: document.getElementById('name').value,
+      hairStyle: document.getElementById('hairStyle').value,
+      props: document.getElementById('props').value,
+      clothing: document.getElementById('clothing').value,
+      notes: document.getElementById('notes').value,
+      image: outputCanvas.toDataURL('image/png')
+    };
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors", // 配合 GAS 的跨域請求
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      statusMsg.className = "status-msg status-success";
+      statusMsg.innerText = "🎉 提交成功！你的班衫角色資料已送達老師試算表與雲端資料夾。";
+      statusMsg.style.display = "block";
+      teeForm.reset();
+      ctxOrig.clearRect(0,0,origCanvas.width,origCanvas.height);
+      ctxOut.clearRect(0,0,outputCanvas.width,outputCanvas.height);
+      currentImage = null;
+    } catch (err) {
+      statusMsg.className = "status-msg status-error";
+      statusMsg.innerText = "❌ 提交失敗，請檢查網絡或聯絡老師：" + err.message;
+      statusMsg.style.display = "block";
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerText = "🚀 一鍵提交資料與手繪頭像";
+    }
   });
 </script>
 
