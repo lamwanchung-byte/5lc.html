@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>班衫角色手繪風轉換器 | Class Tee Avatar Sketch Tool</title>
+  <style>
+    :root { --primary: #2563eb; --bg: #f8fafc; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    h1 { text-align: center; color: var(--primary); margin-bottom: 8px; font-size: 1.5rem; }
+    p.subtitle { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 24px; }
+    .upload-box { border: 2px dashed #cbd5e1; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 20px; background: #f1f5f9; }
+    .upload-box:hover { border-color: var(--primary); }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .control-group { display: flex; flex-direction: column; font-size: 0.85rem; font-weight: bold; }
+    .control-group input, .control-group select { margin-top: 6px; padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; }
+    .preview-container { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; margin-top: 20px; }
+    .preview-card { text-align: center; flex: 1; min-width: 260px; }
+    .preview-card h3 { font-size: 0.95rem; margin-bottom: 8px; color: #475569; }
+    canvas { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .btn-download { display: block; width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 20px; transition: 0.2s; }
+    .btn-download:hover { background: #1d4ed8; }
+    .btn-download:disabled { background: #94a3b8; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🎨 班衫個人頭像手繪化工具</h1>
+  <p class="subtitle">上載參考照片或草圖 ➔ 一鍵生成類手繪線稿 ➔ 下載後提交至班級問卷</p>
+
+  <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <p>📁 點擊上載參考照片（支援 JPG / PNG）</p>
+  </div>
+
+  <div class="controls">
+    <div class="control-group">
+      <label>風格模式 (Style)</label>
+      <select id="styleMode">
+        <option value="pencil">鉛筆素描線條 (Pencil Sketch)</option>
+        <option value="comic">日系動漫描邊 (Anime Line Art)</option>
+        <option value="ink">黑白鋼筆線稿 (Ink Contour)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label>線條強度 / 閾值 (Threshold / Contrast)</label>
+      <input type="range" id="threshold" min="1" max="100" value="50">
+    </div>
+  </div>
+
+  <div class="preview-container">
+    <div class="preview-card">
+      <h3>原圖預覽</h3>
+      <canvas id="origCanvas"></canvas>
+    </div>
+    <div class="preview-card">
+      <h3>手繪風效果（可直接下載）</h3>
+      <canvas id="outputCanvas"></canvas>
+    </div>
+  </div>
+
+  <button class="btn-download" id="downloadBtn" disabled>💾 下載手繪風圖片 (PNG)</button>
+</div>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const styleMode = document.getElementById('styleMode');
+  const threshold = document.getElementById('threshold');
+  const origCanvas = document.getElementById('origCanvas');
+  const outputCanvas = document.getElementById('outputCanvas');
+  const downloadBtn = document.getElementById('downloadBtn');
+  
+  const ctxOrig = origCanvas.getContext('2d');
+  const ctxOut = outputCanvas.getContext('2d');
+  let currentImage = null;
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        currentImage = img;
+        // 限制畫布最大尺寸以保證效能
+        const maxDim = 800;
+        let w = img.width, h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+          else { w = Math.round((w * maxDim) / h); h = maxDim; }
+        }
+        origCanvas.width = outputCanvas.width = w;
+        origCanvas.height = outputCanvas.height = h;
+        ctxOrig.drawImage(img, 0, 0, w, h);
+        processImage();
+        downloadBtn.disabled = false;
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  styleMode.addEventListener('change', processImage);
+  threshold.addEventListener('input', processImage);
+
+  function processImage() {
+    if (!currentImage) return;
+    const w = origCanvas.width;
+    const h = origCanvas.height;
+    const imgData = ctxOrig.getImageData(0, 0, w, h);
+    const data = imgData.data;
+    const outImgData = ctxOut.createImageData(w, h);
+    const outData = outImgData.data;
+
+    const mode = styleMode.value;
+    const threshVal = parseInt(threshold.value, 10);
+
+    // 灰階矩陣
+    const gray = new Float32Array(w * h);
+    for (let i = 0; i < data.length; i += 4) {
+      gray[i / 4] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    }
+
+    if (mode === 'pencil') {
+      // 鉛筆素描：反色 + 高斯模糊近似 + 顏色減淡 (Color Dodge)
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const idx = y * w + x;
+          // 簡易邊緣梯級計算
+          const gx = (-gray[(y-1)*w + (x-1)] + gray[(y-1)*w + (x+1)] - 2*gray[y*w + (x-1)] + 2*gray[y*w + (x+1)] - gray[(y+1)*w + (x-1)] + gray[(y+1)*w + (x+1)]);
+          const gy = (-gray[(y-1)*w + (x-1)] - 2*gray[(y-1)*w + x] - gray[(y-1)*w + (x+1)] + gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)]);
+          let edge = Math.sqrt(gx * gx + gy * gy) * (threshVal / 30);
+          let val = 255 - edge;
+          val = Math.max(0, Math.min(255, val));
+
+          const pIdx = idx * 4;
+          outData[pIdx] = val;
+          outData[pIdx + 1] = val;
+          outData[pIdx + 2] = val;
+          outData[pIdx + 3] = 255;
+        }
+      }
+    } else if (mode === 'comic') {
+      // 動漫線稿：保留部分原色 + 邊緣加黑線
+      for (let y = 1; y < h - 1; y++) {
+        for (let x = 1; x < w - 1; x++) {
+          const idx = y * w + x;
+          const gx = (-gray[(y-1)*w + (x-1)] + gray[(y-1)*w + (x+1)] - 2*gray[y*w + (x-1)] + 2*gray[y*w + (x+1)] - gray[(y+1)*w + (x-1)] + gray[(y+1)*w + (x+1)]);
+          const gy = (-gray[(y-1)*w + (x-1)] - 2*gray[(y-1)*w + x] - gray[(y-1)*w + (x+1)] + gray[(y+1)*w + (x-1)] + 2*gray[(y+1)*w + x] + gray[(y+1)*w + (x+1)]);
+          const isEdge = Math.sqrt(gx * gx + gy * gy) > (110 - threshVal);
+
+          const pIdx = idx * 4;
+          if (isEdge) {
+            outData[pIdx] = 30; outData[pIdx + 1] = 30; outData[pIdx + 2] = 30; outData[pIdx + 3] = 255;
+          } else {
+            // 色彩量化 / 賽璐璐平塗感
+            outData[pIdx] = Math.floor(data[pIdx] / 64) * 64 + 32;
+            outData[pIdx + 1] = Math.floor(data[pIdx + 1] / 64) * 64 + 32;
+            outData[pIdx + 2] = Math.floor(data[pIdx + 2] / 64) * 64 + 32;
+            outData[pIdx + 3] = 255;
+          }
+        }
+      }
+    } else {
+      // 鋼筆純黑白高對比線稿
+      for (let i = 0; i < gray.length; i++) {
+        const val = gray[i] < (threshVal * 2.55) ? 0 : 255;
+        const pIdx = i * 4;
+        outData[pIdx] = val; outData[pIdx + 1] = val; outData[pIdx + 2] = val; outData[pIdx + 3] = 255;
+      }
+    }
+    ctxOut.putImageData(outImgData, 0, 0);
+  }
+
+  downloadBtn.addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = `class_tee_sketch_${Date.now()}.png`;
+    link.href = outputCanvas.toDataURL('image/png');
+    link.click();
+  });
+</script>
+
+</body>
+</html>
